@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 from requests import get
+from pyhunter import PyHunter
 from argparse import ArgumentParser
 from re import findall
+from pathlib import Path
+import json
 
 # TODO: write fetching other domains logic 
-# TODO 
+# TODO: 
 def skymem(domain:str,fetch_subdomains:bool) -> list:
     """Fetch emails from Skymem.
     Takes 2 arguments:
@@ -25,21 +28,30 @@ def pwned(email:str) -> bool:
     # if response.status_code ==200:
     print(response.content)
 
+def hunter(domain:str,key:str) -> list:
+    hunter_api = PyHunter(key)
+    hunter_api.domain_search(domain)
+
 if __name__ == "__main__":
     parser = ArgumentParser(description="Get Emails")
-    parser.add_argument('-d','--domain',required=True,help='Domain name')
-    parser.add_argument('--skymem',action="store_true",help="retrieve from Skymem")
+    parser.add_argument('-d','--domain',help='Domain name')
+    # parser.add_argument('--skymem',action="store_true",help="retrieve from Skymem")
     parser.add_argument('--subdomains',action="store_true",help="Fetch any subdomains if available")
-    parser.add_argument('--pwned',action="store_true",help="Check if the email is pwned by haveibeenpwned.com")
+    # parser.add_argument('--pwned',action="store_true",help="Check if the email is pwned by haveibeenpwned.com")
+    parser.add_argument('-s','--source',help="Specify the sources: Skymem, Hunter,")
+
     args = parser.parse_args()
     emails = []
-    
-    if args.skymem:
+    keys = json.loads(open(f"{Path.home()}/.config/enumail/keys.json","r").read())
+
+    sources = args.source.lower()
+    if "skymem" in sources:
         emails.extend(skymem(args.domain,args.subdomains))
     
-    if args.pwned:
-        for email in emails:
-            pwned(email)
-
+    if "hunter" in sources:
+        hunter(args.domain,keys['hunter'])
+    # if args.pwned:
+    #     for email in emails:
+    #         pwned(email)
     # for email in set(emails):
     #     print(email)
