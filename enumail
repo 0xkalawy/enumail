@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+from requests import get
+from argparse import ArgumentParser
+from re import findall
+
+# TODO: write fetching other domains logic 
+# TODO 
+def skymem(domain:str,fetch_subdomains:bool) -> list:
+    """Fetch emails from Skymem.
+    Takes 2 arguments:
+        - domain to be searched
+        - a bool value tells whether to fetch other domains or not"""
+    
+    # you should search for your target then you get a link for the mail addreses
+    url = findall(r"/domain/[^\"]+",get(f"https://www.skymem.info/srch?q={domain}").text)
+    
+    # the mails are displayed in two pages so i try once with 2 (Exist by default in the url), then with 1
+    emails = findall(rf"[^>=?:]+@{domain}",get("https://www.skymem.info"+url[0]).text)
+    emails.extend(findall(rf"[^>=?:]+@{domain}",get("https://www.skymem.info"+url[0].split("=")[0]+"=1").text))
+    return emails
+
+def pwned(email:str) -> bool:
+    response = get(f"https://api.haveibeenpwned.com/unifiedsearch/{email}")
+    # if response.status_code ==200:
+    print(response.content)
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description="Get Emails")
+    parser.add_argument('-d','--domain',required=True,help='Domain name')
+    parser.add_argument('--skymem',action="store_true",help="retrieve from Skymem")
+    parser.add_argument('--subdomains',action="store_true",help="Fetch any subdomains if available")
+    parser.add_argument('--pwned',action="store_true",help="Check if the email is pwned by haveibeenpwned.com")
+    args = parser.parse_args()
+    emails = []
+    
+    if args.skymem:
+        emails.extend(skymem(args.domain,args.subdomains))
+    
+    if args.pwned:
+        for email in emails:
+            pwned(email)
+
+    # for email in set(emails):
+    #     print(email)
